@@ -9,7 +9,8 @@ from mtpar.basis import change_basis
 from mtpar.util import PI, DEG
 
 try:
-    from mtuq.grid import FullMomentTensorGridRandom
+    from mtuq.grid import FullMomentTensorGridRandom, FullMomentTensorGridRegular,\
+        DoubleCoupleGridRandom
 except ImportError:
     raise Exception("MTUQ not installed")
 
@@ -18,7 +19,22 @@ EPSVAL = 1.e-3
 
 
 class TestMomentTensor(unittest.TestCase):
-    def test_RandomFullMomentTensor(self):
+    def test_DoubleCoupleGridRandom(self):
+         grid = DoubleCoupleGridRandom(magnitude=1., npts=1)
+         M1 = grid.get(0)
+
+         args = []
+         for val in grid.vals:
+             args += [val[0]]
+         M2 = tt152cmt(*args)
+
+         e = np.linalg.norm(M1-M2)/np.linalg.norm(M1)
+         if e > EPSVAL:
+             print('||M1 - M2|| = %e' % e)
+             raise Exception
+
+
+    def test_FullMomentTensorGridRandom(self):
          grid = FullMomentTensorGridRandom(magnitude=1., npts=1)
          M1 = grid.get(0)
 
@@ -29,13 +45,24 @@ class TestMomentTensor(unittest.TestCase):
 
          e = np.linalg.norm(M1-M2)/np.linalg.norm(M1)
          if e > EPSVAL:
-             for val in M1: print(val)
-             print()
-             for val in M2: print(val)
-             print()
-
              print('||M1 - M2|| = %e' % e)
              raise Exception
+
+    def test_grid_callback(self):
+         grid1 = FullMomentTensorGridRegular(
+             magnitude=1., npts_per_axis=10)
+
+         grid2 = FullMomentTensorGridRegular(
+             magnitude=1., npts_per_axis=10, callback=tt152cmt)
+
+         M1 = grid1.get(333)
+         M2 = grid2.get(333)
+
+         e = np.linalg.norm(M1-M2)/np.linalg.norm(M1)
+         if e > EPSVAL:
+             print('||M1 - M2|| = %e' % e)
+             raise Exception
+
 
 
 
