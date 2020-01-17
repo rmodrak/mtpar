@@ -32,7 +32,7 @@ class TestMomentTensor(unittest.TestCase):
             raise Exception
 
 
-    def test_FullMomentTensor_Tape2015(self):
+    def test_FullMomentTensor_2015(self):
         M1 = np.array([
             1.006279239004, # m11
             0.737173428960, # m22
@@ -78,7 +78,7 @@ class TestMomentTensor(unittest.TestCase):
             raise Exception
 
 
-    def test_Explosion_Tape2015(self):
+    def test_Explosion_2015(self):
         M = np.array([
             1., # m11
             1., # m22
@@ -102,13 +102,13 @@ class TestMomentTensor(unittest.TestCase):
             raise Exception
 
 
-    def test_Tape2015_appendixA(self):
+    def test_2015_appendixA(self):
         """ Reproduces the calculations in Appendix A of
             Tape and Tape (2015), "A uniform parameterization of moment tensors"
         """
         rho = 1.
 
-        # Tape2015 parameters given in the appendix
+        # 2015 parameters given in the appendix
         u = 3.*PI/8.
         v = -1./9.
         kappa = 4.*PI/5. * DEG
