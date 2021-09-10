@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 
 from mtpar import cmt2tt, cmt2tt15, tt2cmt, tt152cmt
-from mtpar.basis import change_basis
+from mtpar.basis import cast
 from mtpar.util import PI, DEG
 
 try:

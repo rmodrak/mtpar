@@ -5,7 +5,7 @@ VERBOSE = 0
 
 import numpy as np
 
-from mtpar.basis import change_basis
+from mtpar.basis import cast
 from mtpar.util import PI, DEG, eig, fangle_signed, rotmat, rotmat_gen, wrap360
 
 
@@ -20,7 +20,7 @@ def cmt2tt(M):
     output: gamma, delta, M0, kappa, theta, sigma
     """
     # diagonalize
-    lam, U, = eig(_mat(_change_basis(M)), sort_type=1)
+    lam, U, = eig(_mat(_cast(M)), sort_type=1)
     gamma, delta, M0, = lam2lune(lam)
 
     # require det(U) = 1
@@ -112,7 +112,7 @@ def tt2cmt(*args):
 
     # convert from south-east-up to up-south-east convention
     # (note: U is still in south-east-up)
-    M = change_basis(_vec(M), 5, 1)
+    M = cast(_vec(M), 5, 1)
 
     return M
 
@@ -426,11 +426,11 @@ def _round1(X):
     return X
 
 
-def _change_basis(M):
+def _cast(M):
     """ Converts from up-south-east to
         south-east-up convention
     """
-    return change_basis(M, i1=1, i2=5)
+    return cast(M, i1=1, i2=5)
 
 
 

@@ -4,7 +4,7 @@
 import numpy as np
 
 
-def change_basis(M, i1=None, i2=None):
+def cast(M, i1=None, i2=None):
     """ Converts from one basis convention to another
 
       Convention 1: up-south-east (GCMT) (www.globalcmt.org)

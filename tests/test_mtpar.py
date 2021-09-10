@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 
 from mtpar import cmt2tt, cmt2tt15, tt2cmt, tt152cmt
-from mtpar.basis import change_basis
+from mtpar.basis import cast
 from mtpar.util import PI, DEG
 
 
@@ -131,7 +131,7 @@ class TestMomentTensor(unittest.TestCase):
         mt = tt152cmt(rho, v, w, kappa, sigma, h)
 
         # convert from up-south-east to north-west-up
-        mt = change_basis(mt, 1, 3)
+        mt = cast(mt, 1, 3)
 
         e = np.linalg.norm(mt-mt0)
         if e > 1.e-3:
