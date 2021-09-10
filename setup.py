@@ -49,7 +49,7 @@ setup(
     ],
     python_requires='~=3.5',
     install_requires=[
-        "numpy", "scipy", "obspy", "pytest",
+        "numpy", "scipy", "obspy", "pytest", "six"
     ],
 )
 
