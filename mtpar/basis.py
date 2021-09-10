@@ -3,208 +3,244 @@
 
 import numpy as np
 
+from six import string_types
 
-def cast(M, i1=None, i2=None):
+
+# obspy basis convention
+OBSPY = [
+    'NED',# 	North, East, Down 	Jost and Herrmann 1989
+    'USE',# 	Up, South, East 	Global CMT Catalog, Larson et al. 2010
+    'XYZ',# 	East, North, Up 	General formulation, Jost and Herrmann 1989
+    'RT', # 	Radial, Transverse, Tangential 	psmeca (GMT), Wessel and Smith 1999
+    'NWU',# 	North, West, Up 	Stein and Wysession 2003
+     ]
+
+
+# compearth basis conventions
+COMPEARTH = [
+    1, # USE
+    2, # NED  Jost and Herrmann 1989, Aki and Richards 1980
+    3, # NWU  Stein and Wysession 2003, Tape and Tape 2012
+    4, # ENU
+    5, # SEU  Tape and Tape 2013
+    ]
+
+
+mapping = {
+    'NED': 2,
+    'USE': 1,
+    'XYZ': 4,
+    'NWU': 3,
+    'ENU': 4,
+    'SEU': 5,
+    }
+
+
+def _parse_basis(code):
+
+    if not isinstance(code, six.string_types):
+        raise ValueError
+    code = code.upper()
+
+    if code=='RT':
+        raise NotImplementedError
+
+    if code not in COMPEARTH and\
+       code not in mapping:
+        raise ValueError
+
+    if code in COMPEARTH:
+        return code
+
+    elif code in mapping:
+        return mapping[code]
+
+
+def cast(mt, old=None, new=None):
     """ Converts from one basis convention to another
-
-      Convention 1: up-south-east (GCMT) (www.globalcmt.org)
-        1: up (r), 2: south (theta), 3: east (phi)
-     
-      Convention 2: Aki and Richards (1980, p. 114-115, 118)
-        also Jost and Herrman (1989, Fig. 1)
-        1: north, 2: east, 3: down
-     
-      Convention 3: Stein and Wysession (2003, p. 218)
-        also TapeTape2012a "A geometric setting for moment tensors" (p.478)
-        also several Kanamori codes
-        1: north, 2: west, 3: up
-      
-      Convention 4: 
-        1: east, 2: north, 3: up
-      
-      Convention 5: TapeTape2013 "The classical model for moment tensors" (p.1704)
-        1: south, 2: east, 3: up
     """
 
-    if i1 not in [1,2,3,4,5]:
-        raise ValueError
+    i1 = _parse_basis(old)
+    i2 = _parse_basis(new)
 
-    if i2 not in [1,2,3,4,5]:
-        raise ValueError
+    if  mt.shape != (6,)
+       raise ValueError
 
-    # check input array
-    assert M.shape == (6,)
+    mtnew = np.empty(6)
+    mtnew[:] = np.nan
 
-    # initialize output array
-    Mout = np.empty(6) * np.nan
+
+    #
+    # From now on, we closely follow compearth's implementation
+    #
 
     if i1==i2:
-        Mout = M
+        mtnew = mt
 
     elif (i1,i2) == (1,2):
-        # up-south-east (GCMT) to north-east-down (AkiRichards 1980, p.118)
-        Mout[0] = M[1]
-        Mout[1] = M[2]
-        Mout[2] = M[0]
-        Mout[3] = -M[5]
-        Mout[4] = M[3]
-        Mout[5] = -M[4]
+        # up-south-east to north-east-down
+        mtnew[0] = mt[1]
+        mtnew[1] = mt[2]
+        mtnew[2] = mt[0]
+        mtnew[3] =-mt[5]
+        mtnew[4] = mt[3]
+        mtnew[5] =-mt[4]
     elif (i1,i2) == (1,3):
-        # up-south-east (GCMT) to north-west-up (/opt/seismo-util/bin/faultpar2cmtsol.pl)
-        Mout[0] = M[1]
-        Mout[1] = M[2]
-        Mout[2] = M[0]
-        Mout[3] = M[5]
-        Mout[4] = -M[3]
-        Mout[5] = -M[4]
+        # up-south-east to north-west-up
+        mtnew[0] = mt[1]
+        mtnew[1] = mt[2]
+        mtnew[2] = mt[0]
+        mtnew[3] = mt[5]
+        mtnew[4] =-mt[3]
+        mtnew[5] =-mt[4]
     elif (i1,i2) == (1,4):
-        # up-south-east (GCMT) to east-north-up
-        Mout[0] = M[2]
-        Mout[1] = M[1]
-        Mout[2] = M[0]
-        Mout[3] = -M[5]
-        Mout[4] = M[4]
-        Mout[5] = -M[3]
+        # up-south-east to east-north-up
+        mtnew[0] = mt[2]
+        mtnew[1] = mt[1]
+        mtnew[2] = mt[0]
+        mtnew[3] =-mt[5]
+        mtnew[4] = mt[4]
+        mtnew[5] =-mt[3]
     elif (i1,i2) == (1,5):
-        # up-south-east (GCMT) to south-east-up
-        Mout[0] = M[1]
-        Mout[1] = M[2]
-        Mout[2] = M[0]
-        Mout[3] = M[5]
-        Mout[4] = M[3]
-        Mout[5] = M[4]  
+        # up-south-east to south-east-up
+        mtnew[0] = mt[1]
+        mtnew[1] = mt[2]
+        mtnew[2] = mt[0]
+        mtnew[3] = mt[5]
+        mtnew[4] = mt[3]
+        mtnew[5] = mt[4]  
 
     elif (i1,i2) == (2,1):
-        # north-east-down (AkiRichards) to up-south-east (GCMT) (AR, 1980, p. 118)
-        Mout[0] = M[2]
-        Mout[1] = M[0]
-        Mout[2] = M[1]
-        Mout[3] = M[4]
-        Mout[4] = -M[5]
-        Mout[5] = -M[3]
+        # north-east-down to up-south-east
+        mtnew[0] = mt[2]
+        mtnew[1] = mt[0]
+        mtnew[2] = mt[1]
+        mtnew[3] = mt[4]
+        mtnew[4] =-mt[5]
+        mtnew[5] =-mt[3]
     elif (i1,i2) == (2,3):
-        # north-east-down (AkiRichards) to north-west-up
-        Mout[0] = M[0]
-        Mout[1] = M[1]
-        Mout[2] = M[2]
-        Mout[3] = -M[3]
-        Mout[4] = -M[4]
-        Mout[5] = M[5]   
+        # north-east-down to north-west-up
+        mtnew[0] = mt[0]
+        mtnew[1] = mt[1]
+        mtnew[2] = mt[2]
+        mtnew[3] =-mt[3]
+        mtnew[4] =-mt[4]
+        mtnew[5] = mt[5]   
     elif (i1,i2) == (2,4):
-        # north-east-down (AkiRichards) to east-north-up
-        Mout[0] = M[1]
-        Mout[1] = M[0]
-        Mout[2] = M[2]
-        Mout[3] = M[3]
-        Mout[4] = -M[5]
-        Mout[5] = -M[4]
+        # north-east-down to east-north-up
+        mtnew[0] = mt[1]
+        mtnew[1] = mt[0]
+        mtnew[2] = mt[2]
+        mtnew[3] = mt[3]
+        mtnew[4] =-mt[5]
+        mtnew[5] =-mt[4]
     elif (i1,i2) == (2,5):
-        # north-east-down (AkiRichards) to south-east-up
-        Mout[0] = M[0]
-        Mout[1] = M[1]
-        Mout[2] = M[2]
-        Mout[3] = -M[3]
-        Mout[4] = M[4]
-        Mout[5] = -M[5]   
+        # north-east-down to south-east-up
+        mtnew[0] = mt[0]
+        mtnew[1] = mt[1]
+        mtnew[2] = mt[2]
+        mtnew[3] =-mt[3]
+        mtnew[4] = mt[4]
+        mtnew[5] =-mt[5]   
 
     elif (i1,i2)==(3,1):
-        # north-west-up to up-south-east (GCMT)
-        Mout[0] = M[2]
-        Mout[1] = M[0]
-        Mout[2] = M[1]
-        Mout[3] = -M[4]
-        Mout[4] = -M[5]
-        Mout[5] = M[3]
+        # north-west-up to up-south-east
+        mtnew[0] = mt[2]
+        mtnew[1] = mt[0]
+        mtnew[2] = mt[1]
+        mtnew[3] =-mt[4]
+        mtnew[4] =-mt[5]
+        mtnew[5] = mt[3]
     elif (i1,i2)==(3,2):
-        # north-west-up to north-east-down (AkiRichards)
-        Mout[0] = M[0]
-        Mout[1] = M[1]
-        Mout[2] = M[2]
-        Mout[3] = -M[3]
-        Mout[4] = -M[4]
-        Mout[5] = M[5] 
+        # north-west-up to north-east-down
+        mtnew[0] = mt[0]
+        mtnew[1] = mt[1]
+        mtnew[2] = mt[2]
+        mtnew[3] =-mt[3]
+        mtnew[4] =-mt[4]
+        mtnew[5] = mt[5] 
     elif (i1,i2)==(3,4):
         # north-west-up to east-north-up
-        Mout[0] = M[1]
-        Mout[1] = M[0]
-        Mout[2] = M[2]
-        Mout[3] = -M[3]
-        Mout[4] = -M[5]
-        Mout[5] = M[4] 
+        mtnew[0] = mt[1]
+        mtnew[1] = mt[0]
+        mtnew[2] = mt[2]
+        mtnew[3] =-mt[3]
+        mtnew[4] =-mt[5]
+        mtnew[5] = mt[4] 
     elif (i1,i2)==(3,5):
         # north-west-up to south-east-up
-        Mout[0] = M[0]
-        Mout[1] = M[1]
-        Mout[2] = M[2]
-        Mout[3] = M[3]
-        Mout[4] = -M[4]
-        Mout[5] = -M[5] 
+        mtnew[0] = mt[0]
+        mtnew[1] = mt[1]
+        mtnew[2] = mt[2]
+        mtnew[3] = mt[3]
+        mtnew[4] =-mt[4]
+        mtnew[5] =-mt[5] 
 
     elif (i1,i2)==(4,1):
-        # east-north-up to up-south-east (GCMT)
-        Mout[0] = M[2]
-        Mout[1] = M[1]
-        Mout[2] = M[0]
-        Mout[3] = -M[5]
-        Mout[4] = M[4]
-        Mout[5] = -M[3]
+        # east-north-up to up-south-east
+        mtnew[0] = mt[2]
+        mtnew[1] = mt[1]
+        mtnew[2] = mt[0]
+        mtnew[3] =-mt[5]
+        mtnew[4] = mt[4]
+        mtnew[5] =-mt[3]
     elif (i1,i2)==(4,2):
-        # east-north-up to north-east-down (AkiRichards)
-        Mout[0] = M[1]
-        Mout[1] = M[0]
-        Mout[2] = M[2]
-        Mout[3] = M[3]
-        Mout[4] = -M[5]
-        Mout[5] = -M[4]
+        # east-north-up to north-east-down
+        mtnew[0] = mt[1]
+        mtnew[1] = mt[0]
+        mtnew[2] = mt[2]
+        mtnew[3] = mt[3]
+        mtnew[4] =-mt[5]
+        mtnew[5] =-mt[4]
     elif (i1,i2)==(4,3):
         # east-north-up to north-west-up
-        Mout[0] = M[1]
-        Mout[1] = M[0]
-        Mout[2] = M[2]
-        Mout[3] = -M[3]
-        Mout[4] = M[5]
-        Mout[5] = -M[4] 
+        mtnew[0] = mt[1]
+        mtnew[1] = mt[0]
+        mtnew[2] = mt[2]
+        mtnew[3] =-mt[3]
+        mtnew[4] = mt[5]
+        mtnew[5] =-mt[4] 
     elif (i1,i2)==(4,5):
         # east-north-up to south-east-up
-        Mout[0] = M[1]
-        Mout[1] = M[0]
-        Mout[2] = M[2]
-        Mout[3] = -M[3]
-        Mout[4] = -M[5]
-        Mout[5] = M[4] 
+        mtnew[0] = mt[1]
+        mtnew[1] = mt[0]
+        mtnew[2] = mt[2]
+        mtnew[3] =-mt[3]
+        mtnew[4] =-mt[5]
+        mtnew[5] = mt[4] 
 
     elif (i1,i2)==(5,1):
-        # south-east-up to up-south-east (GCMT)
-        Mout[0] = M[2]
-        Mout[1] = M[0]
-        Mout[2] = M[1]
-        Mout[3] = M[4]
-        Mout[4] = M[5]
-        Mout[5] = M[3]
+        # south-east-up to up-south-east
+        mtnew[0] = mt[2]
+        mtnew[1] = mt[0]
+        mtnew[2] = mt[1]
+        mtnew[3] = mt[4]
+        mtnew[4] = mt[5]
+        mtnew[5] = mt[3]
     elif (i1,i2)==(5,2):
-        # south-east-up to north-east-down (AkiRichards)
-        Mout[0] = M[0]
-        Mout[1] = M[1]
-        Mout[2] = M[2]
-        Mout[3] = -M[3]
-        Mout[4] = M[4]
-        Mout[5] = -M[5]
+        # south-east-up to north-east-down
+        mtnew[0] = mt[0]
+        mtnew[1] = mt[1]
+        mtnew[2] = mt[2]
+        mtnew[3] =-mt[3]
+        mtnew[4] = mt[4]
+        mtnew[5] =-mt[5]
     elif (i1,i2)==(5,3):
         # south-east-up to north-west-up
-        Mout[0] = M[0]
-        Mout[1] = M[1]
-        Mout[2] = M[2]
-        Mout[3] = M[3]
-        Mout[4] = -M[4]
-        Mout[5] = -M[5]
+        mtnew[0] = mt[0]
+        mtnew[1] = mt[1]
+        mtnew[2] = mt[2]
+        mtnew[3] = mt[3]
+        mtnew[4] =-mt[4]
+        mtnew[5] =-mt[5]
     elif (i1,i2)==(5,4):
         # south-east-up to east-north-up
-        Mout[0] = M[1]
-        Mout[1] = M[0]
-        Mout[2] = M[2]
-        Mout[3] = -M[3]
-        Mout[4] = M[5]
-        Mout[5] = -M[4] 
+        mtnew[0] = mt[1]
+        mtnew[1] = mt[0]
+        mtnew[2] = mt[2]
+        mtnew[3] =-mt[3]
+        mtnew[4] = mt[5]
+        mtnew[5] =-mt[4] 
 
-    return Mout
+    return mtnew
 
